@@ -69,7 +69,6 @@ ACSC_CONNECTION_INFO ACS_Controller::GetConnInfo(HANDLE Handle)
   if (!acsc_GetConnectionInfo(Handle, &ConnectionInfo))
   {
     int Error;
-
     Error = GetErrorDisconnect();
     return Error;
   }
@@ -83,7 +82,6 @@ int ACS_Controller::StopProgram(HANDLE Handle, int programId)
   {
     ErrorsHandler("Stop program error.\n", TRUE);
     int Error;
-
     Error = GetErrorDisconnect();
     return Error;
   }
@@ -97,7 +95,6 @@ int ACS_Controller::RunBufferProgram(HANDLE Handle, int Buffer, char *Label)
   {
     ErrorsHandler("Run program error.\n", TRUE);
     int Error;
-
     Error = GetErrorDisconnect();
     return Error;
 
@@ -112,7 +109,6 @@ int ACS_Controller::DisconnectACS(HANDLE Handle)
   if (!acsc_CloseComm(Handle))
   {
     int Error;
-
     Error = GetErrorDisconnect();
     return Error;
   }
@@ -126,7 +122,6 @@ int ACS_Controller::GetFault(HANDLE Handle, int Axis)
   if (!acsc_GetFault(Handle, Axis, &Fault, ACSC_SYNCHRONOUS))
   {
     int Error;
-
     Error = GetErrorDisconnect();
     return Error;
   }
@@ -151,7 +146,6 @@ int ACS_Controller::ClearFault(HANDLE Handle, int Axis)
   if (!acsc_FaultClear(Handle, Axis, ACSC_SYNCHRONOUS))
   {
     int Error;
-
     Error = GetErrorDisconnect();
     return Error;
   }
@@ -165,7 +159,6 @@ int ACS_Controller::Enable(HANDLE Handle, int Axis)
   {
     ErrorsHandler("Stop program error.\n", TRUE);
     int Error;
-
     Error = GetErrorDisconnect();
     return Error;
   }

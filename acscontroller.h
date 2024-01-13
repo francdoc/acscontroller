@@ -17,6 +17,7 @@ public:
     static ACS_Controller *ACS_getInstance();
 
     HANDLE ConnectACS();
+    ACSC_CONNECTION_INFO GetConnInfo(HANDLE Handle);
     void ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm);
     int StopProgram(HANDLE Handle, int programId);
     int RunBufferProgram(HANDLE Handle, int Buffer, char *Label);

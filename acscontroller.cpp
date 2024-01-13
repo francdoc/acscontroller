@@ -53,6 +53,21 @@ HANDLE ACS_Controller::ConnectACS()
   return hComm;
 }
 
+ACSC_CONNECTION_INFO ACS_Controller::GetConnInfo(HANDLE Handle)
+{
+  int Error;
+  ACSC_CONNECTION_INFO ConnectionInfo;
+  if (!acsc_GetConnectionInfo(Handle, &ConnectionInfo))
+  {
+    Error = acsc_GetLastError();
+    printf("Transaction error: %d\n", Error);
+    acsc_CloseComm(Handle);
+    printf("Communication is closed.\n");
+    return Error;
+  }
+  return ConnectionInfo;
+}
+
 int ACS_Controller::StopProgram(HANDLE Handle, int programId)
 {
   if (!acsc_StopBuffer(Handle, programId, ACSC_SYNCHRONOUS))

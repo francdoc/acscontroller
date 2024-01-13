@@ -222,3 +222,22 @@ double ACS_Controller::GetPosition(HANDLE Handle, int Axis)
   }
   return FPOS;
 }
+
+double ACS_Controller::GetAcceleration(HANDLE Handle, int Axis)
+{
+  double Acceleration;
+  if (!acsc_GetAcceleration(Handle, Axis, &Acceleration, ACSC_SYNCHRONOUS))
+  {
+    int Error;
+    Error = acsc_GetLastError();
+    printf("Transaction error: %d\n", Error);
+    acsc_CloseComm(Handle);
+    printf("Communication is closed.\n");
+    return Error;
+  }
+  else
+  {
+    printf("Acceleration of axis readout: %f\n", Acceleration);
+  }
+  return Acceleration;
+}

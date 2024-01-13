@@ -28,6 +28,7 @@ public:
     int DisableFault(HANDLE Handle, int Axis);
     int CommuteExt(HANDLE Handle, int Axis);
     double GetPosition(HANDLE Handle, int Axis);
+    double GetAcceleration(HANDLE Handle, int Axis);
 
 private:
     static ACS_Controller *ControllerPtr;

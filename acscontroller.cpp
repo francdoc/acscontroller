@@ -40,6 +40,16 @@ void ACS_Controller::ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm)
   _getch();
 }
 
+int ACS_Controller::GetErrorDisconnect()
+{
+  int Error;
+  Error = acsc_GetLastError();
+  printf("Transaction error: %d\n", Error);
+  acsc_CloseComm(Handle);
+  printf("Communication is closed.\n");
+  return Error;
+}
+
 HANDLE ACS_Controller::ConnectACS()
 {
   char ipAddress[] = DEFAULT_IP;
@@ -55,14 +65,12 @@ HANDLE ACS_Controller::ConnectACS()
 
 ACSC_CONNECTION_INFO ACS_Controller::GetConnInfo(HANDLE Handle)
 {
-  int Error;
   ACSC_CONNECTION_INFO ConnectionInfo;
   if (!acsc_GetConnectionInfo(Handle, &ConnectionInfo))
   {
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
-    acsc_CloseComm(Handle);
-    printf("Communication is closed.\n");
+    int Error;
+
+    Error = GetErrorDisconnect();
     return Error;
   }
   return ConnectionInfo;
@@ -73,9 +81,10 @@ int ACS_Controller::StopProgram(HANDLE Handle, int programId)
   if (!acsc_StopBuffer(Handle, programId, ACSC_SYNCHRONOUS))
   {
     ErrorsHandler("Stop program error.\n", TRUE);
-    acsc_CloseComm(hComm);
-    printf("Communication is closed.\n");
-    return 1;
+    int Error;
+
+    Error = GetErrorDisconnect();
+    return Error;
   }
   return 0;
 }
@@ -85,6 +94,11 @@ int ACS_Controller::RunBufferProgram(HANDLE Handle, int Buffer, char *Label)
   if (!acsc_RunBuffer(Handle, Buffer, Label, ACSC_SYNCHRONOUS))
   {
     ErrorsHandler("Run program error.\n", TRUE);
+    int Error;
+
+    Error = GetErrorDisconnect();
+    return Error;
+
     return 1;
   }
   return 0;
@@ -92,11 +106,11 @@ int ACS_Controller::RunBufferProgram(HANDLE Handle, int Buffer, char *Label)
 
 int ACS_Controller::DisconnectACS(HANDLE Handle)
 {
-  int Error;
   if (!acsc_CloseComm(Handle))
   {
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
+    int Error;
+
+    Error = GetErrorDisconnect();
     return Error;
   }
   printf("Communication is closed.\n");
@@ -106,13 +120,11 @@ int ACS_Controller::DisconnectACS(HANDLE Handle)
 int ACS_Controller::GetFault(HANDLE Handle, int Axis)
 {
   int Fault;
-  int Error;
   if (!acsc_GetFault(Handle, Axis, &Fault, ACSC_SYNCHRONOUS))
   {
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
-    acsc_CloseComm(Handle);
-    printf("Communication is closed.\n");
+    int Error;
+
+    Error = GetErrorDisconnect();
     return Error;
   }
   else
@@ -132,13 +144,11 @@ int ACS_Controller::GetFault(HANDLE Handle, int Axis)
 
 int ACS_Controller::ClearFault(HANDLE Handle, int Axis)
 {
-  int Error;
   if (!acsc_FaultClear(Handle, Axis, ACSC_SYNCHRONOUS))
   {
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
-    acsc_CloseComm(Handle);
-    printf("Communication is closed.\n");
+    int Error;
+
+    Error = GetErrorDisconnect();
     return Error;
   }
   else
@@ -150,14 +160,12 @@ int ACS_Controller::ClearFault(HANDLE Handle, int Axis)
 
 int ACS_Controller::Enable(HANDLE Handle, int Axis)
 {
-  int Error;
   if (!acsc_Enable(Handle, Axis, ACSC_SYNCHRONOUS))
   {
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
     ErrorsHandler("Stop program error.\n", TRUE);
-    acsc_CloseComm(hComm);
-    printf("Communication is closed.\n");
+    int Error;
+
+    Error = GetErrorDisconnect();
     return Error;
   }
   printf("Axis enabled.\n");
@@ -166,21 +174,16 @@ int ACS_Controller::Enable(HANDLE Handle, int Axis)
 
 int ACS_Controller::DisableFault(HANDLE Handle, int Axis)
 {
-  int Error;
   if (!acsc_DisableFault(Handle, Axis, ACSC_SAFETY_LL, ACSC_SYNCHRONOUS))
   {
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
-    acsc_CloseComm(Handle);
-    printf("Communication is closed.\n");
+    int Error;
+    Error = GetErrorDisconnect();
     return Error;
   }
   if (!acsc_DisableFault(Handle, Axis, ACSC_SAFETY_RL, ACSC_SYNCHRONOUS))
   {
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
-    acsc_CloseComm(Handle);
-    printf("Communication is closed.\n");
+    int Error;
+    Error = GetErrorDisconnect();
     return Error;
   }
   return 0;
@@ -188,13 +191,10 @@ int ACS_Controller::DisableFault(HANDLE Handle, int Axis)
 
 int ACS_Controller::CommuteExt(HANDLE Handle, int Axis)
 {
-  int Error;
   if (!acsc_CommutExt(Handle, Axis, ACSC_NONE, ACSC_NONE, ACSC_NONE, ACSC_SYNCHRONOUS))
   {
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
-    acsc_CloseComm(Handle);
-    printf("Communication is closed.\n");
+    int Error;
+    Error = GetErrorDisconnect();
     return Error;
   }
   else
@@ -207,13 +207,10 @@ int ACS_Controller::CommuteExt(HANDLE Handle, int Axis)
 double ACS_Controller::GetPosition(HANDLE Handle, int Axis)
 {
   double FPOS;
-  if (!acsc_GetFPosition(hComm, Axis, &FPOS, ACSC_SYNCHRONOUS))
+  if (!acsc_GetFPosition(Handle, Axis, &FPOS, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
-    acsc_CloseComm(hComm);
-    printf("Communication is closed.\n");
+    Error = GetErrorDisconnect();
     return Error;
   }
   else
@@ -223,16 +220,25 @@ double ACS_Controller::GetPosition(HANDLE Handle, int Axis)
   return FPOS;
 }
 
+double ACS_Controller::GetVelocity(HANDLE Handle, int Axis)
+{
+  double Velocity;
+  if (!acsc_GetVelocity(Handle, Axis, &Velocity, ACSC_SYNCHRONOUS))
+  {
+    int Error;
+    Error = GetErrorDisconnect();
+    return Error;
+  }
+  return Velocity;
+}
+
 double ACS_Controller::GetAcceleration(HANDLE Handle, int Axis)
 {
   double Acceleration;
   if (!acsc_GetAcceleration(Handle, Axis, &Acceleration, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = acsc_GetLastError();
-    printf("Transaction error: %d\n", Error);
-    acsc_CloseComm(Handle);
-    printf("Communication is closed.\n");
+    Error = GetErrorDisconnect();
     return Error;
   }
   else

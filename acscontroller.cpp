@@ -73,6 +73,7 @@ ACSC_CONNECTION_INFO ACS_Controller::GetConnInfo(HANDLE Handle)
     Error = GetErrorDisconnect();
     return Error;
   }
+  printf("Got connection info.\n");
   return ConnectionInfo;
 }
 
@@ -86,6 +87,7 @@ int ACS_Controller::StopProgram(HANDLE Handle, int programId)
     Error = GetErrorDisconnect();
     return Error;
   }
+  printf("Stopped program.\n");
   return 0;
 }
 
@@ -101,6 +103,7 @@ int ACS_Controller::RunBufferProgram(HANDLE Handle, int Buffer, char *Label)
 
     return 1;
   }
+  printf("Ran buffer program.\n");
   return 0;
 }
 
@@ -139,6 +142,7 @@ int ACS_Controller::GetFault(HANDLE Handle, int Axis)
       printf("Left Limit fault\n");
     }
   }
+  printf("Got fault.\n");
   return Fault;
 }
 
@@ -151,10 +155,7 @@ int ACS_Controller::ClearFault(HANDLE Handle, int Axis)
     Error = GetErrorDisconnect();
     return Error;
   }
-  else
-  {
-    printf("Faults cleared.\n");
-  }
+  printf("Faults cleared.\n");
   return 0;
 }
 
@@ -186,6 +187,7 @@ int ACS_Controller::DisableFault(HANDLE Handle, int Axis)
     Error = GetErrorDisconnect();
     return Error;
   }
+  printf("Faults disabled.\n");
   return 0;
 }
 
@@ -197,10 +199,7 @@ int ACS_Controller::CommuteExt(HANDLE Handle, int Axis)
     Error = GetErrorDisconnect();
     return Error;
   }
-  else
-  {
-    printf("Commutation successful.\n");
-  }
+  printf("Commutation successful.\n");
   return 0;
 }
 
@@ -213,10 +212,7 @@ double ACS_Controller::GetPosition(HANDLE Handle, int Axis)
     Error = GetErrorDisconnect();
     return Error;
   }
-  else
-  {
-    printf("Position of encoder readout: %f\n", FPOS);
-  }
+  printf("Position of encoder readout: %f\n", FPOS);
   return FPOS;
 }
 
@@ -229,6 +225,7 @@ double ACS_Controller::GetVelocity(HANDLE Handle, int Axis)
     Error = GetErrorDisconnect();
     return Error;
   }
+  printf("Velocity of axis readout: %f\n", Velocity);
   return Velocity;
 }
 
@@ -241,9 +238,6 @@ double ACS_Controller::GetAcceleration(HANDLE Handle, int Axis)
     Error = GetErrorDisconnect();
     return Error;
   }
-  else
-  {
-    printf("Acceleration of axis readout: %f\n", Acceleration);
-  }
+  printf("Acceleration of axis readout: %f\n", Acceleration);
   return Acceleration;
 }

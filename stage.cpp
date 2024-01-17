@@ -98,18 +98,64 @@ int Stage::commute_axes_xya(Stage_system_t *stage, int pause)
 int Stage::get_fault_axes_xya(Stage_system_t *stage)
 {
     printf("Getting axes faults.\n");
-    stage->FAULT_X = S_system.ACSCptr->GetFault(stage->handle, S_system.ACSCptr->X);
-    stage->FAULT_Y = S_system.ACSCptr->GetFault(stage->handle, S_system.ACSCptr->Y);
-    stage->FAULT_A = S_system.ACSCptr->GetFault(stage->handle, S_system.ACSCptr->A);
+
+    int faultx = S_system.ACSCptr->GetFault(stage->handle, S_system.ACSCptr->X);
+    int faulty = S_system.ACSCptr->GetFault(stage->handle, S_system.ACSCptr->Y);
+    int faulta = S_system.ACSCptr->GetFault(stage->handle, S_system.ACSCptr->A);
+
+    if (faultx != 0)
+    {
+        printf("Error getting X axis fault.\n");
+        return -1;
+    }
+    stage->FAULT_X = faultx;
+
+    if (faulty != 0)
+    {
+        printf("Error getting Y axis fault.\n");
+        return -1;
+    }
+    stage->FAULT_Y = faulty;
+
+    if (faulta != 0)
+    {
+        printf("Error getting A axis fault.\n");
+        return -1;
+    }
+    stage->FAULT_A = faulta;
+
     return 0;
 }
 
 int Stage::get_pos_axes_xya(Stage_system_t *stage)
 {
     printf("Getting axes positions.\n");
-    stage->FPOS_X = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->X);
-    stage->FPOS_Y = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->Y);
-    stage->FPOS_A = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->A);
+
+    int posx = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->X);
+    int posy = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->Y);
+    int posa = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->A);
+
+    if (posx != 0)
+    {
+        printf("Error getting X axis position.\n");
+        return -1;
+    }
+    stage->FPOS_X = posx;
+
+    if (posy != 0)
+    {
+        printf("Error getting Y axis position.\n");
+        return -1;
+    }
+    stage->FPOS_Y = posy;
+
+    if (posa != 0)
+    {
+        printf("Error getting A axis position.\n");
+        return -1;
+    }
+    stage->FPOS_A = posa;
+
     return 0;
 }
 
@@ -142,8 +188,19 @@ int main()
         return -1;
     }
 
-    stage.get_fault_axes_xya(&stage_sys);
-    stage.get_pos_axes_xya(&stage_sys);
+    if (stage.get_fault_axes_xya(&stage_sys) == -1)
+    {
+        printf("Failed to get axes faults. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+
+    if (stage.get_pos_axes_xya(&stage_sys) == -1)
+    {
+        printf("Failed to get axes position.Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
 
     printf("FAULT_X: %d\n", stage_sys.FAULT_X);
     printf("FAULT_Y: %d\n", stage_sys.FAULT_Y);

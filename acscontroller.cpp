@@ -7,6 +7,8 @@
 #include <cstdio>
 #include <iostream>
 #include <ostream>
+#include <cstdio>
+#include <cstdlib>
 
 #define DEFAULT_IP "10.0.0.100"
 
@@ -40,7 +42,7 @@ void ACS_Controller::ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm)
   _getch();
 }
 
-int ACS_Controller::GetErrorDisconnect()
+int ACS_Controller::GetErrorDisconnect(HANDLE Handle)
 {
   int Error;
   Error = acsc_GetLastError();
@@ -57,7 +59,7 @@ HANDLE ACS_Controller::ConnectACS()
   if (hComm == ACSC_INVALID)
   {
     ErrorsHandler("Error while opening communication.\n", TRUE);
-    return hComm;
+    exit(EXIT_FAILURE); // Exit the program on error
   }
   printf("Communication with ACS controller hardware was established successfully.\n");
   return hComm;
@@ -66,12 +68,7 @@ HANDLE ACS_Controller::ConnectACS()
 ACSC_CONNECTION_INFO ACS_Controller::GetConnInfo(HANDLE Handle)
 {
   ACSC_CONNECTION_INFO ConnectionInfo;
-  if (!acsc_GetConnectionInfo(Handle, &ConnectionInfo))
-  {
-    int Error;
-    Error = GetErrorDisconnect();
-    return Error;
-  }
+  acsc_GetConnectionInfo(Handle, &ConnectionInfo);
   printf("Got connection info.\n");
   return ConnectionInfo;
 }
@@ -82,7 +79,7 @@ int ACS_Controller::StopProgram(HANDLE Handle, int programId)
   {
     ErrorsHandler("Stop program error.\n", TRUE);
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   printf("Stopped program.\n");
@@ -95,7 +92,7 @@ int ACS_Controller::RunBufferProgram(HANDLE Handle, int Buffer, char *Label)
   {
     ErrorsHandler("Run program error.\n", TRUE);
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
 
     return 1;
@@ -109,7 +106,7 @@ int ACS_Controller::DisconnectACS(HANDLE Handle)
   if (!acsc_CloseComm(Handle))
   {
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   printf("Communication is closed.\n");
@@ -122,7 +119,7 @@ int ACS_Controller::GetFault(HANDLE Handle, int Axis)
   if (!acsc_GetFault(Handle, Axis, &Fault, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   else
@@ -146,10 +143,10 @@ int ACS_Controller::ClearFault(HANDLE Handle, int Axis)
   if (!acsc_FaultClear(Handle, Axis, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
-  printf("Faults cleared.\n");
+  printf("Fault cleared on axis %d.\n", Axis);
   return 0;
 }
 
@@ -159,7 +156,7 @@ int ACS_Controller::Enable(HANDLE Handle, int Axis)
   {
     ErrorsHandler("Stop program error.\n", TRUE);
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   printf("Axis enabled.\n");
@@ -171,13 +168,13 @@ int ACS_Controller::DisableFault(HANDLE Handle, int Axis)
   if (!acsc_DisableFault(Handle, Axis, ACSC_SAFETY_LL, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   if (!acsc_DisableFault(Handle, Axis, ACSC_SAFETY_RL, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   printf("Faults disabled.\n");
@@ -189,7 +186,7 @@ int ACS_Controller::CommuteExt(HANDLE Handle, int Axis)
   if (!acsc_CommutExt(Handle, Axis, ACSC_NONE, ACSC_NONE, ACSC_NONE, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   printf("Commutation successful.\n");
@@ -202,7 +199,7 @@ double ACS_Controller::GetPosition(HANDLE Handle, int Axis)
   if (!acsc_GetFPosition(Handle, Axis, &FPOS, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   printf("Position of encoder readout: %f\n", FPOS);
@@ -215,7 +212,7 @@ double ACS_Controller::GetVelocity(HANDLE Handle, int Axis)
   if (!acsc_GetVelocity(Handle, Axis, &Velocity, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   printf("Velocity of axis readout: %f\n", Velocity);
@@ -228,7 +225,7 @@ double ACS_Controller::GetAcceleration(HANDLE Handle, int Axis)
   if (!acsc_GetAcceleration(Handle, Axis, &Acceleration, ACSC_SYNCHRONOUS))
   {
     int Error;
-    Error = GetErrorDisconnect();
+    Error = GetErrorDisconnect(Handle);
     return Error;
   }
   printf("Acceleration of axis readout: %f\n", Acceleration);

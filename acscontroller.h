@@ -15,7 +15,7 @@ public:
     int D = ACSC_AXIS_D;
 
     static ACS_Controller *ACS_getInstance();
-
+    
     HANDLE ConnectACS();
     ACSC_CONNECTION_INFO GetConnInfo(HANDLE Handle);
     void ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm);
@@ -30,7 +30,7 @@ public:
     double GetPosition(HANDLE Handle, int Axis);
     double GetVelocity(HANDLE Handle, int Axis);
     double GetAcceleration(HANDLE Handle, int Axis);
-    int GetErrorDisconnect();
+    int GetErrorDisconnect(HANDLE Handle);
 
 private:
     static ACS_Controller *ControllerPtr;

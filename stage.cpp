@@ -4,6 +4,8 @@
 #include <time.h>
 #include <cstdio>
 #include <queue>
+#include <WinSock2.h>
+#include <windows.h>
 
 #define PAUSE 5000       // millis
 #define PAUSE_EXIT 50000 // millis

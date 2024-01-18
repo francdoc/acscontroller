@@ -33,20 +33,28 @@ ACS_Controller::ACS_Controller()
 };
 
 // methods
-void ACS_Controller::ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm)
+void ACS_Controller::ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm, BOOL fStopMotors)
 {
   printf(ErrorMessage);
   printf("Press any key to exit.\n");
   if (fCloseComm)
     acsc_CloseComm(hComm);
+  if (fStopMotors)
+    EmergencyStop(hComm)
   _getch();
+}
+
+void ACS_Controller::EmergencyStop(HANDLE Handle){
+  acsc_Disable(Handle, ACSC_AXIS_X, ACSC_ASYNCHRONOUS);
+  acsc_Disable(Handle, ACSC_AXIS_Y, ACSC_ASYNCHRONOUS);
+  acsc_Disable(Handle, ACSC_AXIS_A, ACSC_ASYNCHRONOUS);
 }
 
 int ACS_Controller::GetErrorDisconnect(HANDLE Handle)
 {
   int Error;
   Error = acsc_GetLastError();
-  printf("Transaction error: %d\n", Error);
+  printf("Last system error: %d\n", Error);
   acsc_CloseComm(Handle);
   printf("Communication is closed.\n");
   return Error;
@@ -59,7 +67,7 @@ HANDLE ACS_Controller::ConnectACS()
   if (hComm == ACSC_INVALID)
   {
     ErrorsHandler("Error while opening communication.\n", TRUE);
-    exit(EXIT_FAILURE); // Exit the program on error
+    exit(EXIT_FAILURE);
   }
   printf("Communication with ACS controller hardware was established successfully.\n");
   return hComm;
@@ -77,7 +85,7 @@ int ACS_Controller::StopProgram(HANDLE Handle, int programId)
 {
   if (!acsc_StopBuffer(Handle, programId, ACSC_SYNCHRONOUS))
   {
-    ErrorsHandler("Stop program error.\n", TRUE);
+    ErrorsHandler("Error trying to stop program.\n", TRUE);
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
@@ -90,7 +98,7 @@ int ACS_Controller::RunBufferProgram(HANDLE Handle, int Buffer, char *Label)
 {
   if (!acsc_RunBuffer(Handle, Buffer, Label, ACSC_SYNCHRONOUS))
   {
-    ErrorsHandler("Run program error.\n", TRUE);
+    ErrorsHandler("Error trying to run program.\n", TRUE);
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
@@ -161,6 +169,18 @@ int ACS_Controller::Enable(HANDLE Handle, int Axis)
   }
   printf("Axis enabled.\n");
   return 0;
+}
+
+int ACS_Controller::Disable(HANDLE Handle, int Axis)
+{
+  if (!acsc_Disable(Handle, Axis, ACSC_SYNCHRONOUS))
+  {
+    ErrorsHandler("Stop program error.\n", TRUE);
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  printf("Axis disabled.\n");
 }
 
 int ACS_Controller::DisableFault(HANDLE Handle, int Axis)

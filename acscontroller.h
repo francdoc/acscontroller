@@ -24,6 +24,7 @@ public:
     int DisconnectACS(HANDLE Handle);
     int GetFault(HANDLE Handle, int Axis);
     int ClearFault(HANDLE Handle, int Axis);
+    int Disable(HANDLE Handle, int Axis);
     int Enable(HANDLE Handle, int Axis);
     int DisableFault(HANDLE Handle, int Axis);
     int CommuteExt(HANDLE Handle, int Axis);
@@ -31,6 +32,7 @@ public:
     double GetVelocity(HANDLE Handle, int Axis);
     double GetAcceleration(HANDLE Handle, int Axis);
     int GetErrorDisconnect(HANDLE Handle);
+    void EmergencyStop(HANDLE Handle);
 
 private:
     static ACS_Controller *ControllerPtr;

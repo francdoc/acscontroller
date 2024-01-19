@@ -45,12 +45,8 @@ void ACS_Controller::ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm, BO
 
 void ACS_Controller::EmergencyStop(HANDLE Handle)
 {
-  printf("Emergency disable of X axis.\n");
-  acsc_Disable(Handle, ACSC_AXIS_X, ACSC_ASYNCHRONOUS);
-  printf("Emergency disable of Y axis.\n");
-  acsc_Disable(Handle, ACSC_AXIS_Y, ACSC_ASYNCHRONOUS);
-  printf("Emergency disable of A axis.\n");
-  acsc_Disable(Handle, ACSC_AXIS_A, ACSC_ASYNCHRONOUS);
+  acsc_DisableAll(Handle, ACSC_ASYNCHRONOUS);
+  printf("Emergency disable all.\n");
 }
 
 int ACS_Controller::GetErrorDisconnect(HANDLE Handle)
@@ -256,14 +252,21 @@ double ACS_Controller::GetAcceleration(HANDLE Handle, int Axis)
   return Acceleration;
 }
 
-int ACS_Controller::ShiftAxes(HANDLE Handle, double shift_mm, double vel, double endvel)
+int ACS_Controller::ShiftAxes(HANDLE Handle, double shift_mm, double vel, double endvel, const int* Axes)
 {
-  int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
+  if (Axes == nullptr)
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+
   if (!acsc_ExtToPointM(Handle, ACSC_AMF_VELOCITY | ACSC_AMF_ENDVELOCITY, Axes, &shift_mm, vel, endvel, NULL))
   {
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
   }
+
   return 0;
 }

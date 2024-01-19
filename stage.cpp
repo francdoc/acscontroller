@@ -166,9 +166,10 @@ int Stage::get_pos_axes_xya(Stage_system_t *stage)
     return 0;
 }
 
-int Stage::shift_stage_mm(Stage_system_t *stage, double shift_mm, double vel, double endvel)
+int Stage::shift_xya_mm(Stage_system_t *stage, double shift_mm, double vel, double endvel)
 {
-    if (S_system.ACSCptr->ShiftAxes(stage->handle, shift_mm, vel, endvel) != 0)
+    int Axes_XYA[] = {S_system.ACSCptr->X, S_system.ACSCptr->X, S_system.ACSCptr->X, -1};
+    if (S_system.ACSCptr->ShiftAxes(stage->handle, shift_mm, vel, endvel, Axes_XYA) != 0)
     {
         printf("Error shifting stage.\n");
         return -1;

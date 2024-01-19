@@ -33,8 +33,7 @@ public:
     double GetAcceleration(HANDLE Handle, int Axis);
     int GetErrorDisconnect(HANDLE Handle);
     void EmergencyStop(HANDLE Handle);
-    int ShiftAxes(HANDLE Handle, double shift_mm, double vel, double endvel);
-
+    int ShiftAxes(HANDLE Handle, double shift_mm, double vel, double endvel, const int* Axes);
 private:
     static ACS_Controller *ControllerPtr;
     ACS_Controller();

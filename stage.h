@@ -3,6 +3,8 @@
 class Stage
 {
 public:
+    Stage();
+
     typedef struct Stage_system_s
     {
         void *handle;

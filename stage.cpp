@@ -3,13 +3,17 @@
 #include <string>
 #include <time.h>
 #include <cstdio>
-#include <queue>
 #include <windows.h>
 
 #define CRITICAL_PAUSE 5000 // millis (DO NOT EDIT -> key to correct hardware configuration)
 #define PAUSE_EXIT 50000    // millis
 
 Stage::Stage_system_t S_system;
+
+Stage::Stage()
+{
+    printf("Stage class instanced.\n")
+}
 
 int Stage::stage_connect(Stage_system_t *stage)
 {
@@ -175,76 +179,5 @@ int Stage::shift_xya_mm(Stage_system_t *stage, double shift_mm, double vel, doub
         return -1;
     }
     printf("Shifted stage.\n");
-    return 0;
-}
-
-int main()
-{ // quick hw test
-    Stage::Stage_system_t stage_sys;
-    Stage stage;
-
-    // API test
-    stage.stage_connect(&stage_sys);
-
-    if (stage.clear_fault_axes_xya(&stage_sys) == -1)
-    {
-        printf("Failed to clear axes faults. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    };
-
-    if (stage.enable_axes_xya(&stage_sys) == -1)
-    {
-        printf("Failed to enable axes. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-    if (stage.commute_axes_xya(&stage_sys, CRITICAL_PAUSE) == -1)
-    {
-        printf("Failed to commute axes. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-    if (stage.get_fault_axes_xya(&stage_sys) == -1)
-    {
-        printf("Failed to get axes faults. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-    if (stage.shift_stage_mm(&stage_sys, 2.0, 1.5, 0.5))
-    {
-        printf("Failed to shift stage. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-    if (stage.get_pos_axes_xya(&stage_sys) == -1)
-    {
-        printf("Failed to get axes position.Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-    printf("-------------------------\n");
-    printf("System Status Report:\n");
-    printf("-------------------------\n");
-
-    printf("FAULT_X: %d\n", stage_sys.FAULT_X);
-    printf("FAULT_Y: %d\n", stage_sys.FAULT_Y);
-    printf("FAULT_A: %d\n", stage_sys.FAULT_A);
-    printf("FPOS_X: %f\n", stage_sys.FPOS_X);
-    printf("FPOS_Y: %f\n", stage_sys.FPOS_Y);
-    printf("FPOS_A: %f\n", stage_sys.FPOS_A);
-    printf("ACSCptr: %p\n", stage_sys.ACSCptr);
-
-    printf("-------------------------\n");
-
-    while (true)
-    {
-    };
-
     return 0;
 }

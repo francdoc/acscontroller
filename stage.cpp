@@ -4,11 +4,10 @@
 #include <time.h>
 #include <cstdio>
 #include <queue>
-#include <WinSock2.h>
 #include <windows.h>
 
-#define PAUSE 5000       // millis
-#define PAUSE_EXIT 50000 // millis
+#define CRITICAL_PAUSE 5000 // millis (DO NOT EDIT -> key to correct hardware configuration)
+#define PAUSE_EXIT 50000    // millis
 
 Stage::Stage_system_t S_system;
 
@@ -53,18 +52,21 @@ int Stage::enable_axes_xya(Stage_system_t *stage)
         printf("Error enabling X axis.\n");
         return -1;
     }
+    Sleep(CRITICAL_PAUSE);
 
     if (S_system.ACSCptr->Enable(stage->handle, S_system.ACSCptr->Y) != 0)
     {
         printf("Error enabling Y axis.\n");
         return -1;
     }
+    Sleep(CRITICAL_PAUSE);
 
     if (S_system.ACSCptr->Enable(stage->handle, S_system.ACSCptr->A) != 0)
     {
         printf("Error enabling A axis.\n");
         return -1;
     }
+    Sleep(CRITICAL_PAUSE);
 
     return 0;
 }
@@ -78,6 +80,7 @@ int Stage::commute_axes_xya(Stage_system_t *stage, int pause)
         printf("Error commuting X axis.\n");
         return -1;
     }
+    printf("X (0) axis commuted.\n");
     Sleep(pause); // millis
 
     if (S_system.ACSCptr->CommuteExt(stage->handle, S_system.ACSCptr->Y) != 0)
@@ -85,6 +88,7 @@ int Stage::commute_axes_xya(Stage_system_t *stage, int pause)
         printf("Error commuting Y axis.\n");
         return -1;
     }
+    printf("Y (1) axis commuted.\n");
     Sleep(pause); // millis
 
     if (S_system.ACSCptr->CommuteExt(stage->handle, S_system.ACSCptr->A) != 0)
@@ -92,6 +96,7 @@ int Stage::commute_axes_xya(Stage_system_t *stage, int pause)
         printf("Error commuting A axis.\n");
         return -1;
     }
+    printf("A (4) axis commuted.\n");
     Sleep(pause); // millis
 
     return 0;
@@ -161,6 +166,17 @@ int Stage::get_pos_axes_xya(Stage_system_t *stage)
     return 0;
 }
 
+int Stage::shift_stage_mm(Stage_system_t *stage, double shift_mm, double vel, double endvel)
+{
+    if (S_system.ACSCptr->ShiftAxes(stage->handle, shift_mm, vel, endvel) != 0)
+    {
+        printf("Error shifting stage.\n");
+        return -1;
+    }
+    printf("Shifted stage.\n");
+    return 0;
+}
+
 int main()
 { // quick hw test
     Stage::Stage_system_t stage_sys;
@@ -183,7 +199,7 @@ int main()
         return -1;
     }
 
-    if (stage.commute_axes_xya(&stage_sys, PAUSE) == -1)
+    if (stage.commute_axes_xya(&stage_sys, CRITICAL_PAUSE) == -1)
     {
         printf("Failed to commute axes. Exiting.\n");
         Sleep(PAUSE_EXIT);
@@ -197,6 +213,13 @@ int main()
         return -1;
     }
 
+    if (stage.shift_stage_mm(&stage_sys, 2.0, 1.5, 0.5))
+    {
+        printf("Failed to shift stage. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+
     if (stage.get_pos_axes_xya(&stage_sys) == -1)
     {
         printf("Failed to get axes position.Exiting.\n");
@@ -204,13 +227,19 @@ int main()
         return -1;
     }
 
+    printf("-------------------------\n");
+    printf("System Status Report:\n");
+    printf("-------------------------\n");
+
     printf("FAULT_X: %d\n", stage_sys.FAULT_X);
     printf("FAULT_Y: %d\n", stage_sys.FAULT_Y);
     printf("FAULT_A: %d\n", stage_sys.FAULT_A);
-    printf("FPOS_X: %lf\n", stage_sys.FPOS_X);
-    printf("FPOS_Y: %lf\n", stage_sys.FPOS_Y);
-    printf("FPOS_A: %lf\n", stage_sys.FPOS_A);
+    printf("FPOS_X: %f\n", stage_sys.FPOS_X);
+    printf("FPOS_Y: %f\n", stage_sys.FPOS_Y);
+    printf("FPOS_A: %f\n", stage_sys.FPOS_A);
     printf("ACSCptr: %p\n", stage_sys.ACSCptr);
+
+    printf("-------------------------\n");
 
     while (true)
     {

@@ -1,5 +1,4 @@
 #include "acscontroller.h"
-#include "windows.h"
 #include <conio.h>
 #include <stdio.h>
 #include <string>
@@ -40,13 +39,17 @@ void ACS_Controller::ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm, BO
   if (fCloseComm)
     acsc_CloseComm(hComm);
   if (fStopMotors)
-    EmergencyStop(hComm)
+    EmergencyStop(hComm);
   _getch();
 }
 
-void ACS_Controller::EmergencyStop(HANDLE Handle){
+void ACS_Controller::EmergencyStop(HANDLE Handle)
+{
+  printf("Emergency disable of X axis.\n");
   acsc_Disable(Handle, ACSC_AXIS_X, ACSC_ASYNCHRONOUS);
+  printf("Emergency disable of Y axis.\n");
   acsc_Disable(Handle, ACSC_AXIS_Y, ACSC_ASYNCHRONOUS);
+  printf("Emergency disable of A axis.\n");
   acsc_Disable(Handle, ACSC_AXIS_A, ACSC_ASYNCHRONOUS);
 }
 
@@ -66,7 +69,7 @@ HANDLE ACS_Controller::ConnectACS()
   hComm = acsc_OpenCommEthernet(ipAddress, ACSC_SOCKET_STREAM_PORT);
   if (hComm == ACSC_INVALID)
   {
-    ErrorsHandler("Error while opening communication.\n", TRUE);
+    ErrorsHandler("Error while opening communication.\n", TRUE, TRUE);
     exit(EXIT_FAILURE);
   }
   printf("Communication with ACS controller hardware was established successfully.\n");
@@ -85,7 +88,7 @@ int ACS_Controller::StopProgram(HANDLE Handle, int programId)
 {
   if (!acsc_StopBuffer(Handle, programId, ACSC_SYNCHRONOUS))
   {
-    ErrorsHandler("Error trying to stop program.\n", TRUE);
+    ErrorsHandler("Error trying to stop program.\n", TRUE, TRUE);
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
@@ -98,7 +101,7 @@ int ACS_Controller::RunBufferProgram(HANDLE Handle, int Buffer, char *Label)
 {
   if (!acsc_RunBuffer(Handle, Buffer, Label, ACSC_SYNCHRONOUS))
   {
-    ErrorsHandler("Error trying to run program.\n", TRUE);
+    ErrorsHandler("Error trying to run program.\n", TRUE, TRUE);
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
@@ -142,7 +145,7 @@ int ACS_Controller::GetFault(HANDLE Handle, int Axis)
       printf("Left Limit fault\n");
     }
   }
-  printf("Got fault.\n");
+  printf("Requesting fault status.\n");
   return Fault;
 }
 
@@ -162,12 +165,12 @@ int ACS_Controller::Enable(HANDLE Handle, int Axis)
 {
   if (!acsc_Enable(Handle, Axis, ACSC_SYNCHRONOUS))
   {
-    ErrorsHandler("Stop program error.\n", TRUE);
+    ErrorsHandler("Stop program error.\n", TRUE, TRUE);
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
   }
-  printf("Axis enabled.\n");
+  printf("Enabled axis %d.\n", Axis);
   return 0;
 }
 
@@ -175,12 +178,13 @@ int ACS_Controller::Disable(HANDLE Handle, int Axis)
 {
   if (!acsc_Disable(Handle, Axis, ACSC_SYNCHRONOUS))
   {
-    ErrorsHandler("Stop program error.\n", TRUE);
+    ErrorsHandler("Stop program error.\n", TRUE, TRUE);
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
   }
-  printf("Axis disabled.\n");
+  printf("Disabled axis %d.\n", Axis);
+  return 0;
 }
 
 int ACS_Controller::DisableFault(HANDLE Handle, int Axis)
@@ -209,7 +213,7 @@ int ACS_Controller::CommuteExt(HANDLE Handle, int Axis)
     Error = GetErrorDisconnect(Handle);
     return Error;
   }
-  printf("Commutation successful.\n");
+  printf("Commuted axis %d.\n", Axis);
   return 0;
 }
 
@@ -250,4 +254,16 @@ double ACS_Controller::GetAcceleration(HANDLE Handle, int Axis)
   }
   printf("Acceleration of axis readout: %f\n", Acceleration);
   return Acceleration;
+}
+
+int ACS_Controller::ShiftAxes(HANDLE Handle, double shift_mm, double vel, double endvel)
+{
+  int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
+  if (!acsc_ExtToPointM(Handle, ACSC_AMF_VELOCITY | ACSC_AMF_ENDVELOCITY, Axes, &shift_mm, vel, endvel, NULL))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
 }

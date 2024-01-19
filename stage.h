@@ -21,6 +21,7 @@ public:
     int clear_fault_axes_xya(Stage_system_t *stage);
     int get_pos_axes_xya(Stage_system_t *stage);
     int enable_axes_xya(Stage_system_t *stage);
-
+    int shift_stage_mm(Stage_system_t *stage, double shift_mm, double vel, double endvel);
+    
 private:
 };

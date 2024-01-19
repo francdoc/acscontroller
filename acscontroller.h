@@ -15,10 +15,10 @@ public:
     int D = ACSC_AXIS_D;
 
     static ACS_Controller *ACS_getInstance();
-    
+
     HANDLE ConnectACS();
     ACSC_CONNECTION_INFO GetConnInfo(HANDLE Handle);
-    void ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm);
+    void ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm, BOOL fStopMotors);
     int StopProgram(HANDLE Handle, int programId);
     int RunBufferProgram(HANDLE Handle, int Buffer, char *Label);
     int DisconnectACS(HANDLE Handle);
@@ -33,6 +33,7 @@ public:
     double GetAcceleration(HANDLE Handle, int Axis);
     int GetErrorDisconnect(HANDLE Handle);
     void EmergencyStop(HANDLE Handle);
+    int ShiftAxes(HANDLE Handle, double shift_mm, double vel, double endvel);
 
 private:
     static ACS_Controller *ControllerPtr;

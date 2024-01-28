@@ -45,8 +45,12 @@ void ACS_Controller::ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm, BO
 
 void ACS_Controller::EmergencyStop(HANDLE Handle)
 {
-  acsc_DisableAll(Handle, ACSC_ASYNCHRONOUS);
-  printf("Emergency disable all.\n");
+  printf("Emergency disable of X axis.\n");
+  acsc_Disable(Handle, ACSC_AXIS_X, ACSC_ASYNCHRONOUS);
+  printf("Emergency disable of Y axis.\n");
+  acsc_Disable(Handle, ACSC_AXIS_Y, ACSC_ASYNCHRONOUS);
+  printf("Emergency disable of A axis.\n");
+  acsc_Disable(Handle, ACSC_AXIS_A, ACSC_ASYNCHRONOUS);
 }
 
 int ACS_Controller::GetErrorDisconnect(HANDLE Handle)
@@ -69,6 +73,19 @@ HANDLE ACS_Controller::ConnectACS()
     exit(EXIT_FAILURE);
   }
   printf("Communication with ACS controller hardware was established successfully.\n");
+  return hComm;
+}
+
+HANDLE ACS_Controller::ConnectSimulatorACS()
+{
+  char ipAddress[] = DEFAULT_IP;
+  hComm = acsc_OpenCommSimulator();
+  if (hComm == ACSC_INVALID)
+  {
+    ErrorsHandler("Error while opening communication.\n", TRUE, TRUE);
+    exit(EXIT_FAILURE);
+  }
+  printf("Communication with ACS simulation hardware was established successfully.\n");
   return hComm;
 }
 
@@ -252,21 +269,42 @@ double ACS_Controller::GetAcceleration(HANDLE Handle, int Axis)
   return Acceleration;
 }
 
-int ACS_Controller::ShiftAxes(HANDLE Handle, double shift_mm, double vel, double endvel, const int* Axes)
+int ACS_Controller::ExtToPointM_mm(HANDLE Handle, double abs_point_mm, double vel, double endvel)
 {
-  if (Axes == nullptr)
+  int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
+  double Target[]= {abs_point_mm, abs_point_mm, abs_point_mm};
+
+  if (!acsc_ExtToPointM(Handle, ACSC_AMF_VELOCITY | ACSC_AMF_ENDVELOCITY, Axes, Target, vel, endvel, ACSC_SYNCHRONOUS))
   {
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
   }
+  return 0;
+}
 
-  if (!acsc_ExtToPointM(Handle, ACSC_AMF_VELOCITY | ACSC_AMF_ENDVELOCITY, Axes, &shift_mm, vel, endvel, NULL))
+int ACS_Controller::SmoothPointToPointMotion_mm(HANDLE Handle, double abs_point_mm, double vel)
+{
+  int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
+  double Target[] = {abs_point_mm, abs_point_mm, abs_point_mm};
+
+  if (!acsc_SmoothPointToPointMotion(Handle, ACSC_AMF_ENVELOPE, Axes, Target, vel, ACSC_SYNCHRONOUS))
   {
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
   }
+  return 0;
+}
 
+int ACS_Controller::HaltAxes(HANDLE Handle)
+{
+  int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
+  if (!acsc_HaltM(Handle, Axes, NULL))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
   return 0;
 }

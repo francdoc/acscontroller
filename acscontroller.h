@@ -17,6 +17,7 @@ public:
     static ACS_Controller *ACS_getInstance();
 
     HANDLE ConnectACS();
+    HANDLE ConnectSimulatorACS();
     ACSC_CONNECTION_INFO GetConnInfo(HANDLE Handle);
     void ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm, BOOL fStopMotors);
     int StopProgram(HANDLE Handle, int programId);
@@ -33,7 +34,10 @@ public:
     double GetAcceleration(HANDLE Handle, int Axis);
     int GetErrorDisconnect(HANDLE Handle);
     void EmergencyStop(HANDLE Handle);
-    int ShiftAxes(HANDLE Handle, double shift_mm, double vel, double endvel, const int* Axes);
+    int ExtToPointM_mm(HANDLE Handle, double abs_point_mm, double vel, double endvel);
+    int SmoothPointToPointMotion_mm(HANDLE Handle, double abs_point_mm, double vel);
+    int HaltAxes(HANDLE Handle);
+    
 private:
     static ACS_Controller *ControllerPtr;
     ACS_Controller();

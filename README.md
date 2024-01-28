@@ -2,6 +2,7 @@
 
 ## .cpp file compilation in Windows OS:
 
-Use mingw64 (C:\msys64) to compile. Follow https://code.visualstudio.com/docs/cpp/config-mingw for install instructions.
+Compiling stage.cpp file in a Windows PC for Visual Studio terminal inside acs_control_software folder: 
+* g++ .\acscontroller.cpp .\stage.cpp -o stage.exe -LC:.\C_CPP\Dependencies\ -lACSCL_x64 -mconsole
 
-    $ g++ C:/path_to_repository/acscontroller.cpp C:/path_to_repository/stage.cpp -o C:/path_to_repository/stage.exe -LC:/path_to_repository/C_CPP/Dependencies -lACSCL_x64 -mconsole
+* Video tutorial for compiling: https://www.youtube.com/watch?v=oC69vlWofJQ&t=86s

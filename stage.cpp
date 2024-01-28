@@ -3,23 +3,31 @@
 #include <string>
 #include <time.h>
 #include <cstdio>
+#include <queue>
 #include <windows.h>
 
-#define CRITICAL_PAUSE 5000 // millis (DO NOT EDIT -> key to correct hardware configuration)
+#define CRITICAL_PAUSE 5000 // millis (do not edit -> key to correct hardware configuration)
 #define PAUSE_EXIT 50000    // millis
 
-Stage::Stage_system_t S_system;
+#define SIMULATED_HARDWARE 1
+#define REAL_HARDWARE 0
+#define GETPOS 0
 
-Stage::Stage()
-{
-    printf("Stage class instanced.\n")
-}
+Stage::Stage_system_t S_system;
 
 int Stage::stage_connect(Stage_system_t *stage)
 {
     printf("Connecting to stage.\n");
     S_system.ACSCptr = ACS_Controller::ACS_getInstance();
     stage->handle = S_system.ACSCptr->ConnectACS();
+    return 0;
+}
+
+int Stage::stage_simulator_connect(Stage_system_t *stage)
+{
+    printf("Connecting to stage simulation.\n");
+    S_system.ACSCptr = ACS_Controller::ACS_getInstance();
+    stage->handle = S_system.ACSCptr->ConnectSimulatorACS();
     return 0;
 }
 
@@ -170,14 +178,123 @@ int Stage::get_pos_axes_xya(Stage_system_t *stage)
     return 0;
 }
 
-int Stage::shift_xya_mm(Stage_system_t *stage, double shift_mm, double vel, double endvel)
+int Stage::move_stage_mm(Stage_system_t *stage, double abs_point_mm, double vel, double endvel)
 {
-    int Axes_XYA[] = {S_system.ACSCptr->X, S_system.ACSCptr->X, S_system.ACSCptr->X, -1};
-    if (S_system.ACSCptr->ShiftAxes(stage->handle, shift_mm, vel, endvel, Axes_XYA) != 0)
+    if (S_system.ACSCptr->ExtToPointM_mm(stage->handle, abs_point_mm, vel, endvel) != 0)
     {
         printf("Error shifting stage.\n");
         return -1;
     }
-    printf("Shifted stage.\n");
+    printf("Shifted stage async.\n");
+    return 0;
+}
+
+int Stage::move_stage_smooth_mm(Stage_system_t *stage, double abs_point_mm, double vel)
+{
+    if (S_system.ACSCptr->SmoothPointToPointMotion_mm(stage->handle, abs_point_mm, vel) != 0)
+    {
+        printf("Error shifting stage.\n");
+        return -1;
+    }
+    printf("Shifted stage sync.\n");
+    return 0;
+}
+
+int Stage::halt_stage(Stage_system_t *stage)
+{
+    if (S_system.ACSCptr->HaltAxes(stage->handle) != 0)
+    {
+        printf("Error halting stage.\n");
+        return -1;
+    }
+    printf("Halted stage.\n");
+    return 0;
+}
+
+int main()
+{ // quick hw test
+    Stage::Stage_system_t stage_sys;
+    Stage stage;
+
+// API test
+#if SIMULATED_HARDWARE
+    stage.stage_simulator_connect(&stage_sys);
+#endif
+
+#if REAL_HARDWARE
+    stage.stage_connect(&stage_sys);
+#endif
+
+    if (stage.clear_fault_axes_xya(&stage_sys) == -1)
+    {
+        printf("Failed to clear axes faults. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    };
+
+    if (stage.enable_axes_xya(&stage_sys) == -1)
+    {
+        printf("Failed to enable axes. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+
+    if (stage.commute_axes_xya(&stage_sys, CRITICAL_PAUSE) == -1)
+    {
+        printf("Failed to commute axes. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+
+#if REAL_HARDWARE
+    if (stage.get_fault_axes_xya(&stage_sys) == -1)
+    {
+        printf("Failed to get axes faults. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+#endif
+
+    if (stage.move_stage_smooth_mm(&stage_sys, 100, 10))
+    {
+        printf("Failed to sync shift stage. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+
+    if (stage.move_stage_mm(&stage_sys, 50, 10, 10))
+    {
+        printf("Failed to async shift stage. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+
+#if GETPOS
+    if (stage.get_pos_axes_xya(&stage_sys) == -1)
+    {
+        printf("Failed to get axes position. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+#endif
+
+    printf("-------------------------\n");
+    printf("System Status Report:\n");
+    printf("-------------------------\n");
+
+    printf("FAULT_X: %d\n", stage_sys.FAULT_X);
+    printf("FAULT_Y: %d\n", stage_sys.FAULT_Y);
+    printf("FAULT_A: %d\n", stage_sys.FAULT_A);
+    printf("FPOS_X: %f\n", stage_sys.FPOS_X);
+    printf("FPOS_Y: %f\n", stage_sys.FPOS_Y);
+    printf("FPOS_A: %f\n", stage_sys.FPOS_A);
+    printf("ACSCptr: %p\n", stage_sys.ACSCptr);
+
+    printf("-------------------------\n");
+
+    while (true)
+    {
+    };
+
     return 0;
 }

@@ -1,4 +1,6 @@
-#include "stage.h"
+#include <winsock2.h>
+#pragma comment(lib, "ws2_32.lib")
+
 #include <stdio.h>
 #include <string>
 #include <time.h>
@@ -6,12 +8,16 @@
 #include <queue>
 #include <windows.h>
 
-#define CRITICAL_PAUSE 5000 // millis (do not edit -> key to correct hardware configuration)
-#define PAUSE_EXIT 50000    // millis
+#include "stage.h"
 
 #define SIMULATED_HARDWARE 1
 #define REAL_HARDWARE 0
 #define GETPOS 0
+
+#define NETWORK_SERVER 1
+
+#define CRITICAL_PAUSE 5000 // millis (do not edit; key to correct hardware configuration)
+#define PAUSE_EXIT 50000    // millis
 
 Stage::Stage_system_t S_system;
 
@@ -154,49 +160,85 @@ int Stage::get_pos_axes_xya(Stage_system_t *stage)
     int posy = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->Y);
     int posa = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->A);
 
-    if (posx != 0)
-    {
-        printf("Error getting X axis position.\n");
-        return -1;
-    }
     stage->FPOS_X = posx;
-
-    if (posy != 0)
-    {
-        printf("Error getting Y axis position.\n");
-        return -1;
-    }
     stage->FPOS_Y = posy;
+    stage->FPOS_A = posa;
 
-    if (posa != 0)
+    return 0;
+}
+
+int Stage::set_accel_axes_xya(Stage_system_t *stage, double acceleration)
+{
+    int accx = S_system.ACSCptr->SetAcceleration(stage->handle, S_system.ACSCptr->X, acceleration);
+    int accy = S_system.ACSCptr->SetAcceleration(stage->handle, S_system.ACSCptr->Y, acceleration);
+    int acca = S_system.ACSCptr->SetAcceleration(stage->handle, S_system.ACSCptr->A, acceleration);
+
+    if (accx != 0)
     {
-        printf("Error getting A axis position.\n");
+        printf("Error setting X axis acceleration.\n");
         return -1;
     }
-    stage->FPOS_A = posa;
+
+    if (accy != 0)
+    {
+        printf("Error setting Y axis acceleration.\n");
+        return -1;
+    }
+
+    if (acca != 0)
+    {
+        printf("Error setting A axis acceleration.\n");
+        return -1;
+    }
 
     return 0;
 }
 
 int Stage::move_stage_mm(Stage_system_t *stage, double abs_point_mm, double vel, double endvel)
 {
+    // Absolute position movement.
     if (S_system.ACSCptr->ExtToPointM_mm(stage->handle, abs_point_mm, vel, endvel) != 0)
     {
-        printf("Error shifting stage.\n");
+        printf("Error executing command to shift stage.\n");
         return -1;
     }
-    printf("Shifted stage async.\n");
+    printf("Command to shift stage successful.\n");
     return 0;
 }
 
 int Stage::move_stage_smooth_mm(Stage_system_t *stage, double abs_point_mm, double vel)
 {
+    // Absolute position movement.
     if (S_system.ACSCptr->SmoothPointToPointMotion_mm(stage->handle, abs_point_mm, vel) != 0)
     {
-        printf("Error shifting stage.\n");
+        printf("Error executing command to shift stage.\n");
         return -1;
     }
-    printf("Shifted stage sync.\n");
+
+    printf("Command to shift stage successful.\n");
+
+    while (true)
+    {
+        get_pos_axes_xya(stage); // update stage position variables
+        if ((stage->FPOS_X == abs_point_mm) && (stage->FPOS_Y == abs_point_mm) && (stage->FPOS_A == abs_point_mm))
+        {
+            printf("Target stage position reached.\n");
+            break;
+        }
+        Sleep(500); // ms
+    }
+    return 0;
+}
+
+// Prototype function, not used
+int Stage::track_x_axis_motion(Stage_system_t *stage)
+{
+    if (S_system.ACSCptr->TrackAxisMotion(stage->handle, S_system.ACSCptr->X) != 0)
+    {
+        printf("Error tracking motion.\n");
+        return -1;
+    }
+    printf("Tracked motion.\n");
     return 0;
 }
 
@@ -246,6 +288,13 @@ int main()
         return -1;
     }
 
+    if (stage.set_accel_axes_xya(&stage_sys, 25) == -1)
+    {
+        printf("Failed to set axes acceleration. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+
 #if REAL_HARDWARE
     if (stage.get_fault_axes_xya(&stage_sys) == -1)
     {
@@ -255,16 +304,24 @@ int main()
     }
 #endif
 
-    if (stage.move_stage_smooth_mm(&stage_sys, 100, 10))
+    // movement test
+    if (stage.move_stage_smooth_mm(&stage_sys, 24, 25) == -1)
     {
-        printf("Failed to sync shift stage. Exiting.\n");
+        printf("Failed to shift stage. Exiting.\n");
         Sleep(PAUSE_EXIT);
         return -1;
     }
 
-    if (stage.move_stage_mm(&stage_sys, 50, 10, 10))
+    if (stage.move_stage_smooth_mm(&stage_sys, 5, 25) == -1)
     {
-        printf("Failed to async shift stage. Exiting.\n");
+        printf("Failed to shift stage. Exiting.\n");
+        Sleep(PAUSE_EXIT);
+        return -1;
+    }
+
+    if (stage.move_stage_smooth_mm(&stage_sys, 10, 25) == -1)
+    {
+        printf("Failed to shift stage. Exiting.\n");
         Sleep(PAUSE_EXIT);
         return -1;
     }
@@ -288,7 +345,6 @@ int main()
     printf("FPOS_X: %f\n", stage_sys.FPOS_X);
     printf("FPOS_Y: %f\n", stage_sys.FPOS_Y);
     printf("FPOS_A: %f\n", stage_sys.FPOS_A);
-    printf("ACSCptr: %p\n", stage_sys.ACSCptr);
 
     printf("-------------------------\n");
 

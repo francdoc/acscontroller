@@ -37,7 +37,9 @@ public:
     int ExtToPointM_mm(HANDLE Handle, double abs_point_mm, double vel, double endvel);
     int SmoothPointToPointMotion_mm(HANDLE Handle, double abs_point_mm, double vel);
     int HaltAxes(HANDLE Handle);
-    
+    int SetAcceleration(HANDLE Handle, int Axis, double Acceleration);
+    int TrackAxisMotion(HANDLE Handle, int Axis);
+    int AxisGoMotion(HANDLE Handle, int Axis);
 private:
     static ACS_Controller *ControllerPtr;
     ACS_Controller();

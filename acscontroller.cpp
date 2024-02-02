@@ -269,10 +269,23 @@ double ACS_Controller::GetAcceleration(HANDLE Handle, int Axis)
   return Acceleration;
 }
 
+int ACS_Controller::SetAcceleration(HANDLE Handle, int Axis, double Acceleration)
+{
+  if (!acsc_SetAcceleration(Handle, Axis, Acceleration, ACSC_SYNCHRONOUS))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
+
+// example of the waiting call of acsc_SetAcceleration
+
 int ACS_Controller::ExtToPointM_mm(HANDLE Handle, double abs_point_mm, double vel, double endvel)
 {
   int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
-  double Target[]= {abs_point_mm, abs_point_mm, abs_point_mm};
+  double Target[]= {abs_point_mm, abs_point_mm, abs_point_mm, -1};
 
   if (!acsc_ExtToPointM(Handle, ACSC_AMF_VELOCITY | ACSC_AMF_ENDVELOCITY, Axes, Target, vel, endvel, ACSC_SYNCHRONOUS))
   {
@@ -286,9 +299,31 @@ int ACS_Controller::ExtToPointM_mm(HANDLE Handle, double abs_point_mm, double ve
 int ACS_Controller::SmoothPointToPointMotion_mm(HANDLE Handle, double abs_point_mm, double vel)
 {
   int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
-  double Target[] = {abs_point_mm, abs_point_mm, abs_point_mm};
+  double Target[] = {abs_point_mm, abs_point_mm, abs_point_mm,-1};
 
   if (!acsc_SmoothPointToPointMotion(Handle, ACSC_AMF_ENVELOPE, Axes, Target, vel, ACSC_SYNCHRONOUS))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
+
+int ACS_Controller::TrackAxisMotion(HANDLE Handle, int Axis)
+{
+  if (!acsc_Track(Handle, ACSC_AMF_WAIT, Axis, ACSC_SYNCHRONOUS))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
+
+int ACS_Controller::AxisGoMotion(HANDLE Handle, int Axis)
+{
+  if (!acsc_Go(Handle, Axis, ACSC_SYNCHRONOUS))
   {
     int Error;
     Error = GetErrorDisconnect(Handle);
@@ -300,7 +335,7 @@ int ACS_Controller::SmoothPointToPointMotion_mm(HANDLE Handle, double abs_point_
 int ACS_Controller::HaltAxes(HANDLE Handle)
 {
   int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
-  if (!acsc_HaltM(Handle, Axes, NULL))
+  if (!acsc_HaltM(Handle, Axes, ACSC_SYNCHRONOUS))
   {
     int Error;
     Error = GetErrorDisconnect(Handle);

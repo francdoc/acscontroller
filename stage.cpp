@@ -1,25 +1,35 @@
-#include <winsock2.h>
-#pragma comment(lib, "ws2_32.lib")
-
 #include <stdio.h>
 #include <string>
 #include <time.h>
 #include <cstdio>
 #include <queue>
-#include <windows.h>
+#include <iostream>
 
 #include "stage.h"
 
-#define SIMULATED_HARDWARE 1
-#define REAL_HARDWARE 0
 #define GETPOS 0
+#define CRITICAL_PAUSE 5000                 // millis (do not edit; key to correct hardware configuration)
+#define TARGET_POSITION_TOLERANCE 0.0000001 // mm
 
-#define NETWORK_SERVER 1
+Stage *Stage::ControllerPtr = nullptr;
 
-#define CRITICAL_PAUSE 5000 // millis (do not edit; key to correct hardware configuration)
-#define PAUSE_EXIT 50000    // millis
+Stage *Stage::Stage_getInstance()
+{
+    if (ControllerPtr == nullptr)
+    {
+        ControllerPtr = new Stage(); // singleton pattern
+        return ControllerPtr;
+    }
+    else
+    {
+        return ControllerPtr;
+    }
+};
 
-Stage::Stage_system_t S_system;
+Stage::Stage()
+{
+    printf("Stage_Controller init.\n");
+};
 
 int Stage::stage_connect(Stage_system_t *stage)
 {
@@ -156,9 +166,9 @@ int Stage::get_pos_axes_xya(Stage_system_t *stage)
 {
     printf("Getting axes positions.\n");
 
-    int posx = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->X);
-    int posy = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->Y);
-    int posa = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->A);
+    double posx = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->X);
+    double posy = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->Y);
+    double posa = S_system.ACSCptr->GetPosition(stage->handle, S_system.ACSCptr->A);
 
     stage->FPOS_X = posx;
     stage->FPOS_Y = posy;
@@ -206,6 +216,21 @@ int Stage::move_stage_mm(Stage_system_t *stage, double abs_point_mm, double vel,
     return 0;
 }
 
+// Function to check if the stage has reached the desired position
+bool Stage::is_target_position_reached(double abs_point_mm, double target_tolerance, double position)
+{
+    printf("---------------------------- target position check -----------------------------------\n");
+
+    bool result = (fabs(abs_point_mm - position) <= target_tolerance);
+
+    printf("abs_point_mm: %.6f\n", abs_point_mm);
+    printf("target_tolerance: %.6f\n", target_tolerance);
+    printf("position: %.6f\n", position);
+    printf("Result: %s\n", result ? "True" : "False");
+
+    return result;
+}
+
 int Stage::move_stage_smooth_mm(Stage_system_t *stage, double abs_point_mm, double vel)
 {
     // Absolute position movement.
@@ -217,15 +242,36 @@ int Stage::move_stage_smooth_mm(Stage_system_t *stage, double abs_point_mm, doub
 
     printf("Command to shift stage successful.\n");
 
+    double last_fpos_x = 0; // to store last position and compare it with actual position to check in case of timeouts, mechanical obstructions, etc
+    double last_fpos_y = 0;
+    double last_fpos_a = 0;
+
     while (true)
     {
+        printf("------------------------------- movement cycle  --------------------------------------\n");
+
         get_pos_axes_xya(stage); // update stage position variables
-        if ((stage->FPOS_X == abs_point_mm) && (stage->FPOS_Y == abs_point_mm) && (stage->FPOS_A == abs_point_mm))
+
+        last_fpos_x = stage->FPOS_X;
+        last_fpos_y = stage->FPOS_Y;
+        last_fpos_a = stage->FPOS_A;
+
+        printf("last_fpos_x: %.6f\n", last_fpos_x);
+        printf("last_fpos_y: %.6f\n", last_fpos_y);
+        printf("last_fpos_a: %.6f\n", last_fpos_a);
+
+        if (is_target_position_reached(abs_point_mm, TARGET_POSITION_TOLERANCE, last_fpos_x) &&
+            is_target_position_reached(abs_point_mm, TARGET_POSITION_TOLERANCE, last_fpos_y) &&
+            is_target_position_reached(abs_point_mm, TARGET_POSITION_TOLERANCE, last_fpos_a))
         {
-            printf("Target stage position reached.\n");
-            break;
+            printf("Stage reached desired position.\n");
+            return 0;
         }
-        Sleep(500); // ms
+        else
+        {
+            printf("Stage has not reached desired position yet.\n");
+        }
+        Sleep(1000); // ms
     }
     return 0;
 }
@@ -250,107 +296,5 @@ int Stage::halt_stage(Stage_system_t *stage)
         return -1;
     }
     printf("Halted stage.\n");
-    return 0;
-}
-
-int main()
-{ // quick hw test
-    Stage::Stage_system_t stage_sys;
-    Stage stage;
-
-// API test
-#if SIMULATED_HARDWARE
-    stage.stage_simulator_connect(&stage_sys);
-#endif
-
-#if REAL_HARDWARE
-    stage.stage_connect(&stage_sys);
-#endif
-
-    if (stage.clear_fault_axes_xya(&stage_sys) == -1)
-    {
-        printf("Failed to clear axes faults. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    };
-
-    if (stage.enable_axes_xya(&stage_sys) == -1)
-    {
-        printf("Failed to enable axes. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-    if (stage.commute_axes_xya(&stage_sys, CRITICAL_PAUSE) == -1)
-    {
-        printf("Failed to commute axes. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-    if (stage.set_accel_axes_xya(&stage_sys, 25) == -1)
-    {
-        printf("Failed to set axes acceleration. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-#if REAL_HARDWARE
-    if (stage.get_fault_axes_xya(&stage_sys) == -1)
-    {
-        printf("Failed to get axes faults. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-#endif
-
-    // movement test
-    if (stage.move_stage_smooth_mm(&stage_sys, 24, 25) == -1)
-    {
-        printf("Failed to shift stage. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-    if (stage.move_stage_smooth_mm(&stage_sys, 5, 25) == -1)
-    {
-        printf("Failed to shift stage. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-    if (stage.move_stage_smooth_mm(&stage_sys, 10, 25) == -1)
-    {
-        printf("Failed to shift stage. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-
-#if GETPOS
-    if (stage.get_pos_axes_xya(&stage_sys) == -1)
-    {
-        printf("Failed to get axes position. Exiting.\n");
-        Sleep(PAUSE_EXIT);
-        return -1;
-    }
-#endif
-
-    printf("-------------------------\n");
-    printf("System Status Report:\n");
-    printf("-------------------------\n");
-
-    printf("FAULT_X: %d\n", stage_sys.FAULT_X);
-    printf("FAULT_Y: %d\n", stage_sys.FAULT_Y);
-    printf("FAULT_A: %d\n", stage_sys.FAULT_A);
-    printf("FPOS_X: %f\n", stage_sys.FPOS_X);
-    printf("FPOS_Y: %f\n", stage_sys.FPOS_Y);
-    printf("FPOS_A: %f\n", stage_sys.FPOS_A);
-
-    printf("-------------------------\n");
-
-    while (true)
-    {
-    };
-
     return 0;
 }

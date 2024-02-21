@@ -1,3 +1,4 @@
+#include <windows.h>
 #include "acscontroller.h"
 
 class Stage
@@ -15,6 +16,10 @@ public:
         ACS_Controller *ACSCptr;
     } Stage_system_t;
 
+    Stage::Stage_system_t S_system;
+
+    static Stage *Stage_getInstance();
+
     int stage_connect(Stage_system_t *stage);
     int stage_simulator_connect(Stage_system_t *stage);
     int clear_fault_axes_xya(Stage_system_t *stage);
@@ -27,5 +32,10 @@ public:
     int move_stage_smooth_mm(Stage_system_t *stage, double abs_point_mm, double vel);
     int halt_stage(Stage_system_t *stage);
     int track_x_axis_motion(Stage_system_t *stage);
+    bool is_target_position_reached(double abs_point_mm, double target_tolerance, double position);
+
+    Stage();
+
 private:
+    static Stage *ControllerPtr;
 };

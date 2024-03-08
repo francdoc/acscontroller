@@ -98,9 +98,9 @@ ACSC_CONNECTION_INFO ACS_Controller::GetConnInfo(HANDLE Handle)
   return ConnectionInfo;
 }
 
-int ACS_Controller::StopProgram(HANDLE Handle, int programId)
+int ACS_Controller::StopBufferProgram(HANDLE Handle, int Buffer)
 {
-  if (!acsc_StopBuffer(Handle, programId, ACSC_SYNCHRONOUS))
+  if (!acsc_StopBuffer(Handle, Buffer, ACSC_SYNCHRONOUS))
   {
     ErrorsHandler("Error trying to stop program.\n", TRUE, TRUE);
     int Error;
@@ -119,8 +119,6 @@ int ACS_Controller::RunBufferProgram(HANDLE Handle, int Buffer, char *Label)
     int Error;
     Error = GetErrorDisconnect(Handle);
     return Error;
-
-    return 1;
   }
   printf("Ran buffer program.\n");
   return 0;
@@ -272,7 +270,7 @@ double ACS_Controller::GetAcceleration(HANDLE Handle, int Axis)
 
 int ACS_Controller::SetAcceleration(HANDLE Handle, int Axis, double Acceleration)
 {
-  if (!acsc_SetAcceleration(Handle, Axis, Acceleration, ACSC_SYNCHRONOUS))
+  if (!acsc_SetAcceleration(Handle, Axis, Acceleration, NULL))
   {
     int Error;
     Error = GetErrorDisconnect(Handle);
@@ -281,12 +279,69 @@ int ACS_Controller::SetAcceleration(HANDLE Handle, int Axis, double Acceleration
   return 0;
 }
 
-// example of the waiting call of acsc_SetAcceleration
+int ACS_Controller::SetDeceleration(HANDLE Handle, int Axis, double Deceleration)
+{
+  if (!acsc_SetDeceleration(Handle, Axis, Deceleration, NULL))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
 
+int ACS_Controller::SetKillDeceleration(HANDLE Handle, int Axis, double KillDeceleration)
+{
+  if (!acsc_SetKillDeceleration(Handle, Axis, KillDeceleration, NULL))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
+
+int ACS_Controller::SetVelocity(HANDLE Handle, int Axis, double Velocity)
+{
+  if (!acsc_SetVelocity(Handle, Axis, Velocity, NULL))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
+
+int ACS_Controller::ToPointM(HANDLE Handle, double shiftx_mm, double shifty_mm, double shifta_mm)
+{
+  int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
+  double Target[] = {shiftx_mm, shifty_mm, shifta_mm};
+
+  if (!acsc_ToPointM(Handle, ACSC_AMF_RELATIVE, Axes, Target, NULL))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
+
+int ACS_Controller::AxisMovement_timeout_ms(HANDLE Handle, int Axis, int Timeout)
+{
+  if (!acsc_WaitMotionEnd(Handle, Axis, Timeout))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
+
+// not tested
 int ACS_Controller::ExtToPointM_mm(HANDLE Handle, double abs_point_mm, double vel, double endvel)
 {
   int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
-  double Target[]= {abs_point_mm, abs_point_mm, abs_point_mm, -1};
+  double Target[] = {abs_point_mm, abs_point_mm, abs_point_mm};
 
   if (!acsc_ExtToPointM(Handle, ACSC_AMF_VELOCITY | ACSC_AMF_ENDVELOCITY, Axes, Target, vel, endvel, ACSC_SYNCHRONOUS))
   {
@@ -297,10 +352,11 @@ int ACS_Controller::ExtToPointM_mm(HANDLE Handle, double abs_point_mm, double ve
   return 0;
 }
 
+// not tested
 int ACS_Controller::SmoothPointToPointMotion_mm(HANDLE Handle, double abs_point_mm, double vel)
 {
   int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
-  double Target[] = {abs_point_mm, abs_point_mm, abs_point_mm,-1};
+  double Target[] = {abs_point_mm, abs_point_mm, abs_point_mm};
 
   if (!acsc_SmoothPointToPointMotion(Handle, ACSC_AMF_ENVELOPE, Axes, Target, vel, ACSC_SYNCHRONOUS))
   {
@@ -311,6 +367,7 @@ int ACS_Controller::SmoothPointToPointMotion_mm(HANDLE Handle, double abs_point_
   return 0;
 }
 
+// not tested
 int ACS_Controller::TrackAxisMotion(HANDLE Handle, int Axis)
 {
   if (!acsc_Track(Handle, ACSC_AMF_WAIT, Axis, ACSC_SYNCHRONOUS))
@@ -322,6 +379,7 @@ int ACS_Controller::TrackAxisMotion(HANDLE Handle, int Axis)
   return 0;
 }
 
+// not tested
 int ACS_Controller::AxisGoMotion(HANDLE Handle, int Axis)
 {
   if (!acsc_Go(Handle, Axis, ACSC_SYNCHRONOUS))
@@ -335,8 +393,29 @@ int ACS_Controller::AxisGoMotion(HANDLE Handle, int Axis)
 
 int ACS_Controller::HaltAxes(HANDLE Handle)
 {
-  int Axes[] = {ACSC_AXIS_X, ACSC_AXIS_Y, ACSC_AXIS_A, -1};
-  if (!acsc_HaltM(Handle, Axes, ACSC_SYNCHRONOUS))
+  if (!acsc_KillAll(Handle, NULL))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
+
+int ACS_Controller::WriteInternalVar(HANDLE Handle, char *Label, double val)
+{
+  if (!acsc_WriteReal(Handle, ACSC_NONE, Label, ACSC_NONE, ACSC_NONE, ACSC_NONE, ACSC_NONE, &val, ACSC_SYNCHRONOUS))
+  {
+    int Error;
+    Error = GetErrorDisconnect(Handle);
+    return Error;
+  }
+  return 0;
+}
+
+int ACS_Controller::SetPosition(HANDLE Handle, int Axis, double FeedbackPosition)
+{
+  if (!acsc_SetFPosition(Handle, Axis, FeedbackPosition, NULL))
   {
     int Error;
     Error = GetErrorDisconnect(Handle);

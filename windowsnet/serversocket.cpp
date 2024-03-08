@@ -10,8 +10,6 @@
 
 #include "serversocket.h"
 
-const int MAX_MSG_LEN = 0xFFFFFF; // 16Mb - 1byte
-
 WSADATA Serversocket::initWinSock()
 {
     // Initialize Winsock
@@ -155,13 +153,14 @@ int Serversocket::receive(int clientsocket, char *buf, size_t sz)
 
     if (bytesRead == -1)
     {
-        perror("Receive failed");
+        perror("Receive failed.\n");
         close(clientsocket);
         exit(EXIT_FAILURE);
     }
     else if (bytesRead <= 0)
     {
         // Connection closed by the client
+        perror("Connection closed by client, exiting program.\n");
         close(clientsocket);
         exit(EXIT_FAILURE);
     }
@@ -173,11 +172,88 @@ int Serversocket::receive(int clientsocket, char *buf, size_t sz)
     return bytesRead;
 }
 
-float Serversocket::unpackFloat(const uint8_t *bytes, int offset)
+int Serversocket::respond_to_client(int clientsocket, int res)
 {
-    /*Unpacks a 4 byte big-endian float variable.*/
-    uint32_t value = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
-    return *((float *)&value);
+    const char *response;
+
+    if (res == 0)
+    {
+        response = "OK";
+    }
+    else if (res == -1)
+    {
+        response = "ERROR";
+    }
+    else
+    {
+        // Handle other cases or return an error code
+        return -1;
+    }
+
+    int responseLength = strlen(response) + 1; // +1 for null terminator
+    int sendResult = send(clientsocket, response, responseLength, 0);
+
+    if (sendResult == SOCKET_ERROR)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+int Serversocket::send_pos_to_client(int clientsocket, double x_value, double y_value, double a_value)
+{
+    // Determine the size needed for each double string
+    int x_size = snprintf(nullptr, 0, "%.12f", x_value) + 1;
+    int y_size = snprintf(nullptr, 0, "%.12f", y_value) + 1;
+    int a_size = snprintf(nullptr, 0, "%.12f", a_value) + 1;
+
+    // Allocate memory for each double string
+    char *x_str = new char[x_size];
+    char *y_str = new char[y_size];
+    char *a_str = new char[a_size];
+
+    // Convert double values to strings with maximum precision
+    snprintf(x_str, x_size, "%.12f", x_value);
+    snprintf(y_str, y_size, "%.12f", y_value);
+    snprintf(a_str, a_size, "%.12f", a_value);
+
+    // Create a string containing the formatted position information
+    int pos_size = x_size + y_size + a_size + 10; // 10 for additional characters and separators
+    char *pos_str = new char[pos_size];
+    snprintf(pos_str, pos_size, "X:%s Y:%s A:%s", x_str, y_str, a_str);
+
+    int responseLength = strlen(pos_str) + 1; // +1 for null terminator
+    int sendResult = send(clientsocket, pos_str, responseLength, 0);
+
+    // Clean up allocated memory
+    delete[] x_str;
+    delete[] y_str;
+    delete[] a_str;
+    delete[] pos_str;
+
+    if (sendResult == SOCKET_ERROR)
+    {
+        std::cerr << "Error sending position to client." << std::endl;
+        return -1;
+    }
+
+    return 0;
+}
+
+double Serversocket::unpackDouble(const uint8_t *bytes, int offset)
+{
+    /*Unpacks an 8 byte big-endian double variable.*/
+    uint64_t value = ((uint64_t)bytes[offset] << 56) |
+                     ((uint64_t)bytes[offset + 1] << 48) |
+                     ((uint64_t)bytes[offset + 2] << 40) |
+                     ((uint64_t)bytes[offset + 3] << 32) |
+                     ((uint64_t)bytes[offset + 4] << 24) |
+                     ((uint64_t)bytes[offset + 5] << 16) |
+                     ((uint64_t)bytes[offset + 6] << 8) |
+                     (uint64_t)bytes[offset + 7];
+
+    return *((double *)&value);
 }
 
 void Serversocket::printHex(const std::vector<char> &data, int nres)
@@ -206,11 +282,11 @@ std::vector<char> Serversocket::receiveDataFromClient(int clientsocket)
 
     printHex(bufferContainer.m_buf, nRes);
 
-    // Use a loop to unpack float values dynamically
-    for (int i = 0; i < nRes / sizeof(float); ++i)
+    // Use a loop to unpack double values dynamically
+    for (int i = 0; i < nRes / sizeof(double); ++i)
     {
-        float floatValue = unpackFloat(reinterpret_cast<const uint8_t *>(&bufferContainer.m_buf[0]), i * sizeof(float));
-        printf("Unpacked float %d: %f\n", i + 1, floatValue);
+        double doubleValue = unpackDouble(reinterpret_cast<const uint8_t *>(&bufferContainer.m_buf[0]), i * sizeof(double));
+        printf("Unpacked double %d: %f\n", i + 1, doubleValue);
     }
 
     return bufferContainer.m_buf;
@@ -226,13 +302,13 @@ void Serversocket::printReceivedData(const std::vector<char> &data, int nres)
     printf("\n");
 }
 
-void Serversocket::unpackFloatValues(const std::vector<char> &data, int nres)
+void Serversocket::unpackDoubleValues(const std::vector<char> &data, int nres)
 {
-    // Use a loop to unpack float values dynamically
-    for (int i = 0; i < nres / sizeof(float); ++i)
+    // Use a loop to unpack double values dynamically
+    for (int i = 0; i < nres / sizeof(double); ++i)
     {
-        float floatValue = unpackFloat(reinterpret_cast<const uint8_t *>(&data[0]), i * sizeof(float));
-        printf("Unpacked float %d: %f\n", i + 1, floatValue);
+        double doubleValue = unpackDouble(reinterpret_cast<const uint8_t *>(&data[0]), i * sizeof(double));
+        printf("Unpacked double %d: %f\n", i + 1, doubleValue);
     }
 }
 
@@ -265,8 +341,10 @@ void Serversocket::readToQueueThread(Serversocket *server, int clientSocket)
     }
 }
 
-std::vector<float> Serversocket::processQueueElement()
+std::vector<double> Serversocket::processQueueElement()
 {
+    /*Decode a fixed size message of IN_BUF_SIZE_DEFAULT bytes.*/
+
     // Lock to ensure thread safety when accessing the dataQueue
     std::lock_guard<std::mutex> lock(dataQueueMutex);
 
@@ -278,21 +356,21 @@ std::vector<float> Serversocket::processQueueElement()
 
         printf("Received message from queue -> size: %lu.\n", message.size());
 
-        // Unpack float values and store them in a vector
-        std::vector<float> floatValues;
+        // Unpack double values and store them in a vector
+        std::vector<double> doubleValues;
 
-        for (int i = 0; i < message.size() / sizeof(float); ++i)
+        for (int i = 0; i < message.size() / sizeof(double); ++i)
         {
-            float floatValue = unpackFloat(reinterpret_cast<const uint8_t *>(&message[0]), i * sizeof(float));
-            #ifdef DEBUG_PROCESS_QUEUE_ELEMENT
-                printf("Unpacked float %d: %f\n", i + 1, floatValue);
-            #endif
-            floatValues.push_back(floatValue);
+            double doubleValue = unpackDouble(reinterpret_cast<const uint8_t *>(&message[0]), i * sizeof(double));
+#ifdef DEBUG_PROCESS_QUEUE_ELEMENT
+            printf("Unpacked double %d: %d\n", i + 1, doubleValue);
+#endif
+            doubleValues.push_back(doubleValue);
         }
 
-        return floatValues;
+        return doubleValues;
     }
 
     // Return an empty vector if the queue is empty
-    return std::vector<float>();
+    return std::vector<double>();
 }

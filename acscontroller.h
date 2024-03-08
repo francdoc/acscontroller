@@ -20,7 +20,7 @@ public:
     HANDLE ConnectSimulatorACS();
     ACSC_CONNECTION_INFO GetConnInfo(HANDLE Handle);
     void ErrorsHandler(const char *ErrorMessage, BOOL fCloseComm, BOOL fStopMotors);
-    int StopProgram(HANDLE Handle, int programId);
+    int StopBufferProgram(HANDLE Handle, int Buffer);
     int RunBufferProgram(HANDLE Handle, int Buffer, char *Label);
     int DisconnectACS(HANDLE Handle);
     int GetFault(HANDLE Handle, int Axis);
@@ -38,8 +38,16 @@ public:
     int SmoothPointToPointMotion_mm(HANDLE Handle, double abs_point_mm, double vel);
     int HaltAxes(HANDLE Handle);
     int SetAcceleration(HANDLE Handle, int Axis, double Acceleration);
+    int SetVelocity(HANDLE Handle, int Axis, double Velocity);
     int TrackAxisMotion(HANDLE Handle, int Axis);
     int AxisGoMotion(HANDLE Handle, int Axis);
+    int WriteInternalVar(HANDLE Handle, char *Label, double val);
+    int ToPointM(HANDLE Handle, double shiftx_mm, double shifty_mm, double shifta_mm);
+    int SetDeceleration(HANDLE Handle, int Axis, double Deceleration);
+    int SetKillDeceleration(HANDLE Handle, int Axis, double KillDeceleration);
+    int SetPosition(HANDLE Handle, int Axis, double FeedbackPosition);
+    int AxisMovement_timeout_ms(HANDLE Handle, int Axis, int Timeout);
+
 private:
     static ACS_Controller *ControllerPtr;
     ACS_Controller();

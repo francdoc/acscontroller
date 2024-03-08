@@ -8,29 +8,12 @@
 
 #include "stageserver.h"
 
-#define SIMULATED_HARDWARE
-#define INIT_HARDWARE
-
 int main()
 {
-    // Instantiate Stageserver
     Stageserver stageserver;
-
-#ifdef SIMULATED_HARDWARE
-    // Connect with stage simulator
-    stageserver.stageConnectSimu();
-#endif
-
-#ifdef INIT_HARDWARE
-    stageserver.stageInit();
-#endif
-
-    // Open connection on port 1000
-    int clientSocket = stageserver.openConnection(1000);
-
+    int clientSocket = stageserver.openConnection(SERVER_PORT);
     while (true)
     {
     }
-
     return 0;
 }

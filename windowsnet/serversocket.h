@@ -7,7 +7,7 @@
 #include <thread>
 #include <mutex>
 
-#define IN_BUF_SIZE_DEFAULT 12 // bytes
+#define IN_BUF_SIZE_DEFAULT 32 // bytes
 
 class Serversocket
 {
@@ -42,12 +42,14 @@ public:
     int closeSocket(SOCKET clientsocket, SOCKET serversocket);
     int closeClientSocket(SOCKET clientsocket);
     int receive(int clientsocket, char *buf, size_t sz);
+    int respond_to_client(int clientsocket, int res);
     std::vector<char> receiveDataFromClient(int clientsocket);
     void printReceivedData(const std::vector<char> &data, int nres);
-    void unpackFloatValues(const std::vector<char> &data, int nres);
-    float unpackFloat(const uint8_t *bytes, int offset);
+    void unpackDoubleValues(const std::vector<char> &data, int nres);
+    double unpackDouble(const uint8_t *bytes, int offset);
     void printHex(const std::vector<char> &data, int nres);
     void startReader(int clientSocket);
     void readToQueueThread(Serversocket *server, int clientSocket);
-    std::vector<float> processQueueElement();
+    std::vector<double> processQueueElement();
+    int send_pos_to_client(int clientsocket, double x_value, double y_value, double a_value);
 };
